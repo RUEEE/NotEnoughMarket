@@ -6,23 +6,23 @@
 
 
 DWORD (__cdecl *prob_new_anmObj)()= (DWORD (__cdecl*)()) (0x489320);
-int(__fastcall* attach_anm)(int pt_anm_file, int edx, int thiz, int script_id)
-	=(int(__fastcall *)(int,int,int,int))(0x407420);
-int (__fastcall *anm_ins_switch)(int thiz, int edx)
-	=(int(__fastcall*)(int, int))(0x478580);
-int(__stdcall* insertAnmObj)(int* _OUT_handle, int anmObj)
-	= (int(__stdcall*)(int*, int))(0x488350);
-void(__stdcall* setAnmToNextStep)(int handle)
-	= (void(__stdcall*)(int))(0x488CF0);
+int(__thiscall* attach_anm)(DWORD pt_anm_file, int thiz, int script_id)
+	=(int(__thiscall*)(DWORD,int,int))(0x407420);
+int (__thiscall *anm_ins_switch)(DWORD thiz)
+	=(int(__thiscall*)(DWORD))(0x478580);
+HANM*(__stdcall* insertAnmObj)(HANM* _OUT_handle, int anmObj)
+	= (HANM *(__stdcall*)(HANM*, int))(0x488350);
+void(__stdcall* setAnmToNextStep)(HANM handle)
+	= (void(__stdcall*)(HANM))(0x488CF0);
 
-int(__fastcall* delBullet)(int pbullet, int a2, int type)
-= (int(__fastcall*)(int,int,int))(0x428E90);
+int(__fastcall* delBullet)(DWORD pbullet, int a2, int type)
+	= (int(__fastcall*)(DWORD,int,int))(0x428E90);
 //type==0:nothing,type=1:greenpoint,type==4:hammerhit
 
 extern int(__stdcall* playSE)(int id, int a2);
 
-int(__fastcall* getAnmObjFromHandle)(int anm_list,int edx, int handle)
-	= (int(__fastcall*)(int, int, int))(0x488B40);
+int(__thiscall* getAnmObjFromHandle)(int anm_list, HANM handle)
+	= (int(__thiscall*)(int, HANM))(0x488B40);
 
 //int __userpurge sb_45DE40_summon_attack_circle@<eax>(int pplayer@<ecx>, float radiox@<xmm2>, float radioy@<xmm3>, vector3F* pos, int lifespan, int attack);
 int summon_attack_circle(int pplayer,float radiox,float radioy, vector3f* pos, int lifespan, int damage)
@@ -55,13 +55,13 @@ int __fastcall M_abKozuchi_8(AbCardBase* thiz, int a2)
 		DWORD anmFile=VALUED(VALUED(0x4CF298)+0xC);
 		
 		DWORD pAnmObj = prob_new_anmObj();
-		attach_anm(anmFile,0, pAnmObj, 68);
+		attach_anm(anmFile, pAnmObj, 68);
 		VALUED(pAnmObj + 0x18) = 13;
 		VALUED(pAnmObj + 0x538) |= 0x101000;
 		VALUEV(pAnmObj + 0x5F0, vector3f) = thiz->pos_use;
-		anm_ins_switch(pAnmObj, 0);
+		anm_ins_switch(pAnmObj);
 		VALUED(pAnmObj + 0x520) = 0;
-		int handle;
+		HANM handle;
 		insertAnmObj(&handle, pAnmObj);
 
 		thiz->handle_anm = (DWORD)(new TYPE_HD());
@@ -162,7 +162,7 @@ int __fastcall M_abKozuchi_2C(AbCardBase* thiz)
 				{
 					for(auto iter2=st->second.begin();iter2!=st->second.end();iter2++)
 					{
-						DWORD pAnmObj = getAnmObjFromHandle(VALUED(0x51F65C),0,*iter2);
+						DWORD pAnmObj = getAnmObjFromHandle(VALUED(0x51F65C),*iter2);
 						if (!pAnmObj)
 							break;
 						if (VALUED(pAnmObj + 0x560) <= 2)
@@ -178,13 +178,13 @@ int __fastcall M_abKozuchi_2C(AbCardBase* thiz)
 							VALUED(pbt + 0x684) = 0;//stop the trans
 							DWORD anmFile = VALUED(VALUED(0x4CF298) + 0xC);
 							DWORD pAnmObj = prob_new_anmObj();
-							attach_anm(anmFile, 0, pAnmObj, 68);
+							attach_anm(anmFile, pAnmObj, 68);
 							VALUED(pAnmObj + 0x18) = 13;
 							VALUED(pAnmObj + 0x538) |= 0x101000;
 							VALUEV(pAnmObj + 0x5F0, vector3f) = VALUEV(pbt + 0x638, vector3f);
-							anm_ins_switch(pAnmObj, 0);
+							anm_ins_switch(pAnmObj);
 							VALUED(pAnmObj + 0x520) = 0;
-							int handle;
+							HANM handle;
 							insertAnmObj(&handle, pAnmObj);
 							playSE(61, 0);
 							st->first.insert(pbt);

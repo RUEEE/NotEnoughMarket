@@ -19,6 +19,13 @@ extern HWND wind_hwnd;
 
 int(__stdcall* playSE)(int id, int a2)
 	= (int(__stdcall*)(int, int))(0x476BE0);
+int(__thiscall* addCard)(DWORD thiz, int ab_id, int a3)
+	= (int(__thiscall*)(DWORD, int,int))(0x00411460);
+void (__thiscall *clearCard)(DWORD thiz, int a2)
+	= (void(__thiscall*)(DWORD, int))(0x407DA0);
+int (__thiscall *update_shot)(DWORD thiz, int a2)
+	= (int(__thiscall*)(DWORD, int))(0x45D5E0);
+//update_shot(PPLAYER + 0x620, 0);
 
 vector2f GetStageFromClient(vector2f client,vector2f client_sz)
 {
@@ -111,21 +118,21 @@ void DrawAttackHitBox(vector2f clientSz) {
 			DWORD iter = ppl + 0x20574;
 			for (int i = 0; i < 1024; i++)
 			{
-				int flag = *(DWORD*)(iter + 0x0);
-				if (flag & 1)
+				AttackObj* att = (AttackObj*)iter;
+				if (att->is_used())
 				{
 					float x = *(float*)(iter + 0x1C);
 					float y = *(float*)(iter + 0x20);
 					ImVec2 cen = GetClientFromStage({ x,y }, clientSz);
-					if (flag & 2)//round
+					if (att->is_round_hitbox())//round
 					{
-						float r = *(float*)(iter + 0x4);
+						float r = att->att_radio.x;
 						p->AddCircleFilled(cen, GetClientFromStage(r, clientSz), COL_HITBOX_ATTACK_FILL,8);
 						p->AddCircle(cen, GetClientFromStage(r, clientSz), COL_HITBOX_ATTACK,8);
 					}else{
-						float w = *(float*)(iter + 0x14);
-						float h = *(float*)(iter + 0x18);
-						float a = *(float*)(iter + 0xC);
+						float w = att->att_box.x;
+						float h = att->att_box.y;
+						float a = att->angle;
 						float wx = w * cosf(-a),
 							wy = w * sinf(-a),
 							hx = h * cosf(-a),
@@ -148,15 +155,17 @@ void DrawAttackHitBox(vector2f clientSz) {
 		}
 }
 
-void DrawBulletHitBox(vector2f clientSz)
+int DrawBulletHitBox(vector2f clientSz)
 {
 	auto dl = ImGui::GetOverlayDrawList();
+	int sum = 0;
 	DWORD pbtx = VALUED(0x004CF2BC);
 	if (pbtx)
 	{
 		DWORD iter = VALUED(pbtx + 0xC0);
 		while (iter)
 		{
+			sum++;
 			DWORD pbt = VALUED(iter);
 			float len = 20.0f;
 			vector2f vec{ VALUEF(pbt + 0x638),VALUEF(pbt + 0x63C) };
@@ -169,17 +178,16 @@ void DrawBulletHitBox(vector2f clientSz)
 			vec2 = GetClientFromStage(vec2, clientSz);
 			dl->AddCircle(vec, hit, COL_HITBOX_BULLET, 8, 1.0f);
 			dl->AddCircleFilled(vec, hit, COL_HITBOX_BULLET_FILL, 8);
-
 			dl->AddLine(vec, vec2, COL_HITBOX_BULLET,1.0f);
 
 			iter = VALUED(iter + 0x4);
 		}
 	}
+	return sum;
 }
 
 void SetGUI(IDirect3DDevice9* device)
 {
-	return;
 	//ImGui::ShowDemoWindow();
 	auto mousePos = ImGui::GetMousePos();
 	vector2f clientSz= ImGui::GetMainViewport()->Size;
@@ -208,6 +216,21 @@ void SetGUI(IDirect3DDevice9* device)
 	{
 		playSE(SE, 0);
 	}
+
+	static int id_card = 1;
+	ImGui::InputInt("cardId", &id_card, 1);
+	if (ImGui::Button("getCard"))
+		addCard(VALUED(0x004CF298), id_card, 2);
+	if (ImGui::Button("clearCard"))
+		clearCard(VALUED(0x004CF298),0);
+	//the cards to test
+	if (ImGui::Button("UFO"))
+		addCard(VALUED(0x004CF298), 20, 2);
+	if (ImGui::Button("door"))
+		addCard(VALUED(0x004CF298), 19, 2);
+	if (ImGui::Button("update shoot"))
+		update_shot(PPLAYER+0x620, 0);
+
 
 	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && fabsf(smouse.x)<180.0)
 	{
@@ -241,12 +264,38 @@ void SetGUI(IDirect3DDevice9* device)
 	ImGui::Checkbox("drawAttackHitBox", &isDrawAttackHitBox);
 	ImGui::Checkbox("drawAnmObj", &isDrawAnmObj);
 	ImGui::Checkbox("drawBulletHitBox", &isDrawBulletHitBox);
+	int bt = 0;
 	if(isDrawAttackHitBox)
 		DrawAttackHitBox(clientSz);
 	if (isDrawAnmObj)
 		DrawAnmObj(clientSz);
 	if (isDrawBulletHitBox)
-		DrawBulletHitBox(clientSz);
-	//
+	{
+		bt = DrawBulletHitBox(clientSz);
+		ImGui::Text("bullet count:%d", bt);
+	}
+
+
+	//tryFire
+	void(__stdcall * sb_40A9C0_AbOp_TryFire)
+		(DWORD thiz, int time_m15, int time_tot, int slot);
+	*(DWORD*)&sb_40A9C0_AbOp_TryFire = 0x40A9C0;
+	static int tstsht[2] = {0,17};
+	static int time=1;
+	ImGui::DragInt2("Op,slot", tstsht);
+	if (ImGui::IsMouseDown(ImGuiMouseButton_Right) && fabsf(smouse.x) < 180.0)
+	{
+		time++;
+		sb_40A9C0_AbOp_TryFire(PPLAYER+0xA30+tstsht[0]*0xF0,
+			time % 15, time, tstsht[1]);
+	}
+	//setPower
+	static int power = 300;
+	ImGui::DragInt("power", &power, 2.0f, 0, 400);
+	if (ImGui::Button("setPower"))
+	{
+		VALUED(0x004CCD38) = power;
+		update_shot(PPLAYER + 0x620, 0);
+	}
 	ImGui::End();
 }

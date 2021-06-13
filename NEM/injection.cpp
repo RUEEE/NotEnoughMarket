@@ -336,4 +336,5 @@ void unHook()
 void InjectAll()
 {
     InjectAbCard();
+    Hook((LPVOID)0x00407DD4, 7, SetAllPlayerOpOnTickFunc);
 }
