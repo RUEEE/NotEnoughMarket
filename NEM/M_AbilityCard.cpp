@@ -43,6 +43,40 @@ int summon_attack_circle(int pplayer,float radiox,float radioy, vector3f* pos, i
 	return id_att - 1;
 }
 
+int* getEnm_inCircle_attackable(float radius, int* out_id, vector2f* pos)
+{
+	int* ret=0;
+	__asm
+	{
+		push pos
+		push out_id
+		movss xmm3, radius
+		mov eax, 0x438CB0
+		call eax
+		mov ret,eax
+	}
+	return ret;
+}
+
+DWORD Get_pEnemyFromId(int id)
+{
+	DWORD penm = *(DWORD*)(0x004CF2D0);
+	if (penm)
+	{
+		DWORD iter = VALUED(penm + 0x18C);
+		while (iter)
+		{
+			DWORD pEnm = VALUED(iter);
+			{
+				if (VALUED(pEnm + 0x6830) == id)
+					return pEnm;
+			}
+			iter = VALUED(iter + 0x4);
+		}
+	}
+	return 0;
+}
+
 typedef std::pair<std::set<int>, std::vector<int>> TYPE_HD;
 
 int __fastcall M_abKozuchi_8(AbCardBase* thiz, int a2)
@@ -73,6 +107,7 @@ int __fastcall M_abKozuchi_8(AbCardBase* thiz, int a2)
 	
 	return 0;
 }
+
 int __fastcall M_abKozuchi_C(AbCardBase* thiz,int a2, int a3)
 {
 	{
@@ -109,6 +144,7 @@ int __fastcall M_abKozuchi_C(AbCardBase* thiz,int a2, int a3)
 	}
 	return 0;
 }
+
 int __fastcall M_abKozuchi_2C(AbCardBase* thiz)
 {
 	if (thiz->card_process_flag == 0)
@@ -199,10 +235,60 @@ int __fastcall M_abKozuchi_2C(AbCardBase* thiz)
 	}
 	return 0;
 }
+
+int __fastcall M_abItemCatch_20(void)
+{
+	return 0;
+}
+
+int __fastcall M_abItemCatch_24(AbCardBase* thiz)
+{
+	//int id;
+	//getEnm_inCircle_attackable(1024.00,&id,(vector2f*)((PPLAYER)+0x620));
+	//DWORD pEnm;
+	//if (id != 0 && (pEnm=Get_pEnemyFromId(id)))
+	//{
+	//	//+12B4(+88)		(vector2f)绝对坐标
+	//	//+12F8(+CC)		(vector2f)相对坐标
+	//	VALUEF(pEnm + 0x12B4) = VALUEF(pEnm + 0x12B4)*0.98 + VALUEF(PPLAYER+0x620)*0.02;
+	//	VALUEF(pEnm + 0x12B8) = VALUEF(pEnm + 0x12B8)*0.98 + (VALUEF(PPLAYER+0x624)-50.0f)*0.02;
+	//	
+	//	VALUEF(pEnm + 0x12F8) = VALUEF(pEnm + 0x12F8)*0.9;
+	//	VALUEF(pEnm + 0x12FC) = VALUEF(pEnm + 0x12FC)*0.9;
+	//}
+	DWORD penm = *(DWORD*)(0x004CF2D0);
+	if (penm)
+	{
+		DWORD iter = VALUED(penm + 0x18C);
+		while (iter)
+		{
+			DWORD pEnm = VALUED(iter);
+			{
+				DWORD tr = VALUED(pEnm+0x14EC);
+				vector2f pos = VALUEV(pEnm + 0x1270,vector2f);
+				if (tr >= 100 &&
+					pos.x>=-192.0f && pos.x<=192.0f && pos.y>1.0f && pos.y<=448.0f)
+				{
+					VALUEF(pEnm + 0x12B4) = VALUEF(pEnm + 0x12B4) * 0.98 + VALUEF(PPLAYER + 0x620) * 0.02;
+					VALUEF(pEnm + 0x12B8) = VALUEF(pEnm + 0x12B8) * 0.98 + (VALUEF(PPLAYER + 0x624) - 50.0f) * 0.02;
+
+					VALUEF(pEnm + 0x12F8) = VALUEF(pEnm + 0x12F8) * 0.9;
+					VALUEF(pEnm + 0x12FC) = VALUEF(pEnm + 0x12FC) * 0.9;
+				}
+			}
+			iter = VALUED(iter + 0x4);
+		}
+	}
+	return 0;
+}
+
 void InjectAbCard()
 {
 	Address<DWORD>(0x004B50F8).SetValue((DWORD)M_abKozuchi_8);
 	Address<DWORD>(0x004B50FC).SetValue((DWORD)M_abKozuchi_C);
 	Address<DWORD>(0x004B511C).SetValue((DWORD)M_abKozuchi_2C);
+
+	Address<DWORD>(0x004B5690).SetValue((DWORD)M_abItemCatch_20);
+	Address<DWORD>(0x004B5694).SetValue((DWORD)M_abItemCatch_24);
 
 }

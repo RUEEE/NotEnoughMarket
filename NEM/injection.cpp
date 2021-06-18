@@ -6,7 +6,7 @@
 #include "gui.h"
 
 #include "M_AbilityCard.h"
-
+#include "M_Background.h"
 
 #include <memory>
 #include <d3d9.h>
@@ -48,10 +48,8 @@ void Hook(LPVOID addr_inject, size_t move_bytes, LPVOID callee)//inject a call( 
     return;
 }
 
-void HookCall()//the function must be same with the function injected
-{
+void HookCall(LPVOID addr_inject, LPVOID callee);//the function must be same with the function injected
 
-}
 
 
 void** findImportAddress(HANDLE hookModule, LPCSTR moduleName, LPCSTR functionName)
@@ -336,5 +334,6 @@ void unHook()
 void InjectAll()
 {
     InjectAbCard();
+    Inject_BG();
     Hook((LPVOID)0x00407DD4, 7, SetAllPlayerOpOnTickFunc);
 }

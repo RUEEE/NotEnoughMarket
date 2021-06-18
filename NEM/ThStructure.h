@@ -63,7 +63,7 @@ struct EnemyInfo_init
 	float fC;
 	Drop drop;
 	int hp;
-	int f18;
+	DWORD flag_Rsh_19;//enm.flag=(flag << 19)) & 0x80000
 	int f1C;
 	int loc_9985;
 	int loc_9984;
@@ -162,22 +162,60 @@ struct ShotInfo//5C
 
 struct PlayerInfo
 {
-		WORD  maxPower				;//+0 默认4
-		WORD  totalOffset			;//+2 最大offset数量
-		float d_hitBox				;//+4 判定(无用)
-		float d_powerAttractSpeed	;//+8 收p点的速度(无用)
-		float d_powerAttractHitBox	;//+C 收p点的判定(高速)(无用)
-		float normalSpeed			;//+10 高速速度
-		float forcedSpeed			;//+14 低速速度
-		float normalDiagonalSpeed	;//+18 斜向高速(指分配到xy的速度)
-		float forcedDiagonalSpeed	;//+1C 斜向低速
-		WORD  maxPowerLevel			;//+20 最大的子机数
-		WORD  unknown1				;//+22 不知道
-		DWORD powerVar				;//+24 power要修改的内容(40)
-		DWORD maxDamage				;//+28 单帧子弹最高伤害
-		DWORD unknown[5]			;//+2C 不知道
+	WORD  maxPower				;//+0 默认4
+	WORD  totalOffset			;//+2 最大offset数量
+	float d_hitBox				;//+4 判定(无用)
+	float d_powerAttractSpeed	;//+8 收p点的速度(无用)
+	float d_powerAttractHitBox	;//+C 收p点的判定(高速)(无用)
+	float normalSpeed			;//+10 高速速度
+	float forcedSpeed			;//+14 低速速度
+	float normalDiagonalSpeed	;//+18 斜向高速(指分配到xy的速度)
+	float forcedDiagonalSpeed	;//+1C 斜向低速
+	WORD  maxPowerLevel			;//+20 最大的子机数
+	WORD  unknown1				;//+22 不知道
+	DWORD powerVar				;//+24 power要修改的内容(40)
+	DWORD maxDamage				;//+28 单帧子弹最高伤害
+	DWORD unknown[5]			;//+2C 不知道
 };
 
+struct Custom_vertex1
+{
+	vector3f pos;
+	float rhw;
+	DWORD spec;
+	vector2f uv;
+};
+#define FVF_VERTEX_1 (D3DFVF_TEX1|D3DFVF_DIFFUSE|D3DFVF_XYZRHW)
+
+struct Custom_vertex2
+{
+	vector3f pos;
+	float rhw;
+	DWORD spec;
+};
+#define FVF_VERTEX_2 (D3DFVF_DIFFUSE|D3DFVF_XYZRHW)
+struct Custom_vertex3
+{
+	vector3f pos;
+	DWORD spec;
+	vector2f uv;
+};
+struct AsciiToRender
+{
+	char context[256];
+	vector3f pos;
+	DWORD color;
+	vector3f scale;
+	DWORD dword;
+	DWORD type_ascii;
+	int has_shade_flag;
+	int prob_layer;
+	int lifespan;
+	DWORD x_Posflag_130;
+	DWORD y_Posflag_134;
+};
+
+#define FVF_VERTEX_3 (D3DFVF_TEX1|D3DFVF_DIFFUSE|D3DFVF_XYZ)
 
 void SetFlag(DWORD* flag_to_set, DWORD flag);
 void CancelFlag(DWORD* flag_to_set, DWORD flag);
