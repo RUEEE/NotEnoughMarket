@@ -7,6 +7,9 @@
 
 #include "M_AbilityCard.h"
 #include "M_Background.h"
+#include "M_Bomb.h"
+#include "M_DropItem.h"
+#include "Address.h"
 
 #include <memory>
 #include <d3d9.h>
@@ -46,6 +49,11 @@ void Hook(LPVOID addr_inject, size_t move_bytes, LPVOID callee)//inject a call( 
     VirtualProtect(addr_inject, move_bytes, oldprotect, &oldprotect2);
     VirtualProtect(alloc, move_bytes + 14, PAGE_EXECUTE_READWRITE, &oldprotect2);
     return;
+}
+
+void HookCall(LPVOID addr_call, LPVOID callee)
+{
+    Address<DWORD>((DWORD)addr_call+1).SetValue((DWORD)callee-((DWORD)addr_call+5));
 }
 
 void HookCall(LPVOID addr_inject, LPVOID callee);//the function must be same with the function injected
@@ -288,7 +296,7 @@ BOOL (*WINAPI RealTextOutA)(HDC hdc, int nXStart, int nYStart, LPCSTR lpString, 
 
 BOOL WINAPI MyTextOutA(HDC hdc, int nXStart, int nYStart, LPCSTR lpString, int cbString)
 {
-    RECT rc;
+    RECT rc{};
     
     //auto hFont = CreateFontA(15, 15, 0, 0, FW_THIN, true, false, false,
    //     CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
@@ -335,5 +343,7 @@ void InjectAll()
 {
     InjectAbCard();
     Inject_BG();
+    Inject_Bomb();
     Hook((LPVOID)0x00407DD4, 7, SetAllPlayerOpOnTickFunc);
+    InjectDropItem();
 }

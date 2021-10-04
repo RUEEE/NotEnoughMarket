@@ -66,6 +66,18 @@
     <ClInclude Include="M_Background.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="M_Bomb.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="M_DropItem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="StructGenerator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="M_Misc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -111,6 +123,15 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="M_Background.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="M_Bomb.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="M_DropItem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="M_Misc.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

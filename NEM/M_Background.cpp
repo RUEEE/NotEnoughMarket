@@ -88,7 +88,7 @@ int __fastcall M_RenderBG(DWORD thiz)
 		D3DXMATRIX mat_world;
 		static int time = 0;
 		// Turn on ambient lighting 
-		D3DLIGHT9 light;
+		D3DLIGHT9 light = {};
 		light.Type = D3DLIGHT_POINT;
 		light.Diffuse=D3DXCOLOR(1,1,1,1);
 		light.Specular=D3DXCOLOR(1,1,1,1);
@@ -143,5 +143,5 @@ int __fastcall M_RenderBG(DWORD thiz)
 
 void Inject_BG()
 {
-	Address<DWORD>(0x41BAB6).SetValue((DWORD)M_RenderBG);
+	//Address<DWORD>(0x41BAB6).SetValue((DWORD)M_RenderBG);
 }

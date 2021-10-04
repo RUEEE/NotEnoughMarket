@@ -6,9 +6,11 @@
 
 #include "Address.h"
 #include "ThStructure.h"
+#include "M_Misc.h"
 
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <cmath>
 
 
 #define COL_HITBOX_BULLET_FILL 0x300000FF
@@ -20,9 +22,13 @@
 #define COL_HITBOX_ENM_HIT 0xFF00FF00
 #define COL_HITBOX_ENM_ATT 0xFFFF00FF
 
+#define COL_HP 0xFF00CCFF
+
+#define COL_DROP 0xFFCCCCCC
+#define PI 3.141592653589793
 
 extern HWND wind_hwnd;
-
+extern IDirect3D9* g_d3d9;
 int(__stdcall* playSE)(int id, int a2)
 	= (int(__stdcall*)(int, int))(0x476BE0);
 int(__thiscall* addCard)(DWORD thiz, int ab_id, int a3)
@@ -32,6 +38,29 @@ void (__thiscall *clearCard)(DWORD thiz, int a2)
 int (__thiscall *update_shot)(DWORD thiz, int a2)
 	= (int(__thiscall*)(DWORD, int))(0x45D5E0);
 //update_shot(PPLAYER + 0x620, 0);
+int (__thiscall* dropItem)(int thiz, int type, vector3f* pos, int a4, float dir, float spd, int delay, int a8, int a9)
+= (int (__thiscall*)(int thiz, int type, vector3f * pos, int a4, float dir, float spd, int delay, int a8, int a9))(0x446F40);
+
+BOOL(__thiscall* addPower)(int thiz, int power_add)= (BOOL(__thiscall *)(int thiz, int power_add))(0x4573F0);
+int (__stdcall *showPopupText)(vector2f* pos, int text, DWORD color) = (int (__stdcall *)(vector2f * pos, int text, DWORD color))(0x4645F0);
+
+int(__thiscall* addLifePeice)(int thiz, int a2) = (int(__thiscall*)(int thiz, int a2))(0x457570);
+int(__thiscall* addBomb)(int thiz, int a2) = (int(__thiscall*)(int thiz, int a2))(0x457690);
+int(__thiscall* addLife)(int thiz) = (int(__thiscall*)(int thiz))(0x4575F0);
+
+void(_fastcall* SummonEnm)(int thiz, int edx, const char* name, EnemyInfo_init* info, int a) = 
+(void(_fastcall *)(int thiz, int edx, const  char* name, EnemyInfo_init * info, int a))(0x0042D7D0);
+
+DWORD(__fastcall* shake_stage)(int type, int time, int fade_in, int fade_out, int a5, int a6) =
+(DWORD(__fastcall *)(int type, int time, int fade_in, int fade_out, int a5, int a6))(0x476060);
+
+vector2f RotateVec(vector2f pt, vector2f mid, vector2f angle)
+{
+	vector2f dif{ pt.x - mid.x,pt.y - mid.y };
+	float& cost = angle.x;
+	float& sint = angle.y;
+	return { mid.x + dif.x * cost - dif.y * sint,mid.y + dif.y * cost + dif.x * sint };
+}
 
 vector2f GetStageFromClient(vector2f client,vector2f client_sz)
 {
@@ -121,7 +150,6 @@ void DrawAnmObj(vector2f clientSz)//not finished
 			iter = VALUED(iter + 4);
 		}
 	}
-	
 }
 
 void DrawAttackHitBox(vector2f clientSz) {
@@ -141,28 +169,47 @@ void DrawAttackHitBox(vector2f clientSz) {
 					ImVec2 cen = GetClientFromStage({ x,y }, clientSz);
 					if (att->is_round_hitbox())//round
 					{
-						float r = att->att_radio.x;
+						float r = att->att_radio;
 						p->AddCircleFilled(cen, GetClientFromStage(r, clientSz), COL_HITBOX_ATTACK_FILL,8);
 						p->AddCircle(cen, GetClientFromStage(r, clientSz), COL_HITBOX_ATTACK,8);
 					}else{
+						
 						float w = att->att_box.x;
 						float h = att->att_box.y;
 						float a = att->angle;
-						float wx = w * cosf(-a),
-							wy = w * sinf(-a),
-							hx = h * cosf(-a),
-							hy = h * sinf(-a);
-						ImVec2 v[4];
-						v[0] = { x + wx /2 +hy/2, y - wy/2+ hx/2};
-						v[1] = { x - wx / 2+hy/2, y + wy/2+ hx/2};
-						v[3] = { v[0].x - hy, v[0].y - hx};
-						v[2] = { v[1].x - hy,v[1].y - hx};
-						v[0] = GetClientFromStage(v[0], clientSz);
-						v[1] = GetClientFromStage(v[1], clientSz);
-						v[2] = GetClientFromStage(v[2], clientSz);
-						v[3] = GetClientFromStage(v[3], clientSz);
-						p->AddPolyline(v, 4, COL_HITBOX_ATTACK, ImDrawFlags_::ImDrawFlags_Closed, 1.0);
-						p->AddConvexPolyFilled(v, 4, COL_HITBOX_ATTACK_FILL);
+
+						vector2f p1{ x - w / 2 ,y - h / 2 };
+						vector2f p2{ x + w / 2 ,y - h / 2 };
+						vector2f p3{ x + w / 2 ,y + h/2};
+						vector2f p4{ x - w / 2 ,y + h/2};
+
+						vector2f pm{ x,y  };
+						vector2f ang{ cosf(a),sinf(a) };
+						p1 = RotateVec(p1, pm, ang);
+						p2 = RotateVec(p2, pm, ang);
+						p3 = RotateVec(p3, pm, ang);
+						p4 = RotateVec(p4, pm, ang);
+						p1 = GetClientFromStage(p1, clientSz);
+						p2 = GetClientFromStage(p2, clientSz);
+						p3 = GetClientFromStage(p3, clientSz);
+						p4 = GetClientFromStage(p4, clientSz);
+						p->AddQuad(p1, p2, p3, p4, COL_HITBOX_ATTACK);
+						p->AddQuadFilled(p1, p2, p3, p4, COL_HITBOX_ATTACK_FILL);
+						//float wx = w * cosf(-a),
+						//	wy = w * sinf(-a),
+						//	hx = h * cosf(-a),
+						//	hy = h * sinf(-a);
+						//ImVec2 v[4];
+						//v[0] = { x + wx /2 +hy/2, y - wy/2+ hx/2};
+						//v[1] = { x - wx / 2+hy/2, y + wy/2+ hx/2};
+						//v[3] = { v[0].x - hy, v[0].y - hx};
+						//v[2] = { v[1].x - hy,v[1].y - hx};
+						//v[0] = GetClientFromStage(v[0], clientSz);
+						//v[1] = GetClientFromStage(v[1], clientSz);
+						//v[2] = GetClientFromStage(v[2], clientSz);
+						//v[3] = GetClientFromStage(v[3], clientSz);
+						//p->AddPolyline(v, 4, COL_HITBOX_ATTACK, ImDrawFlags_::ImDrawFlags_Closed, 1.0);
+						//p->AddConvexPolyFilled(v, 4, COL_HITBOX_ATTACK_FILL);
 					}
 				}
 				iter = iter + 0x9C;
@@ -174,29 +221,67 @@ void DrawEnemyHitbox(vector2f clientSz)
 {
 	auto p = ImGui::GetOverlayDrawList();
 	//[004CF410]+20574
-	DWORD penm = *(DWORD*)(0x004CF2D0);
-	if (penm)
+	DWORD enmBase = *(DWORD*)(0x004CF2D0);
+	if (enmBase)
 	{
-		DWORD iter= VALUED(penm + 0x18C);
+		DWORD iter= VALUED(enmBase + 0x18C);
 		while (iter)
 		{
 			DWORD pEnm = VALUED(iter);
 			{
 				DWORD flag = VALUED(pEnm + 0x635C);
-				vector2f hit = VALUEV(pEnm + 0x1340, vector2f);
-				vector2f att = VALUEV(pEnm + 0x1340, vector2f);
+				vector2f hit = VALUEV(pEnm + 0x133C, vector2f);
+				vector2f att = VALUEV(pEnm + 0x1344, vector2f);
 				vector2f pos = VALUEV(pEnm + 0x1270, vector2f);
+				float angle = VALUEF(pEnm + 0x134C);
+				if (flag & 0x1000)
+				{
+					vector2f p1{ pos.x - att.y * 0.5f,pos.y - att.x * 0.5f };
+					vector2f p2{ pos.x + att.y * 0.5f,pos.y - att.x * 0.5f };
+					vector2f p3{ pos.x + att.y * 0.5f,pos.y + att.x * 0.5f };
+					vector2f p4{ pos.x - att.y * 0.5f,pos.y + att.x * 0.5f };
+					vector2f p_rot{ pos.x - att.y * 0.5f,pos.y};
+					vector2f A{ cosf(angle),sinf(angle) };
+					p1=RotateVec(p1, p_rot, A);
+					p2=RotateVec(p2, p_rot, A);
+					p3 = RotateVec(p3, p_rot, A);
+					p4 = RotateVec(p4, p_rot, A);
+					p1 = GetClientFromStage(p1, clientSz);
+					p2 = GetClientFromStage(p2, clientSz);
+					p3 = GetClientFromStage(p3, clientSz);
+					p4 = GetClientFromStage(p4, clientSz);
+					p->AddQuad(p1, p2, p3, p4, COL_HITBOX_ENM_ATT);
+					p1 = { pos.x - hit.x * 0.5f,pos.y - hit.y * 0.5f };
+					p2 = { pos.x + hit.x * 0.5f,pos.y - hit.y * 0.5f };
+					p3 = { pos.x + hit.x * 0.5f,pos.y + hit.y * 0.5f };
+					p4 = { pos.x - hit.x * 0.5f,pos.y + hit.y * 0.5f };
+					p_rot={ pos.x,pos.y };
+					A={ cosf(angle),sinf(angle) };
+					p1 = RotateVec(p1, p_rot, A);
+					p2 = RotateVec(p2, p_rot, A);
+					p3 = RotateVec(p3, p_rot, A);
+					p4 = RotateVec(p4, p_rot, A);
+					p1 = GetClientFromStage(p1, clientSz);
+					p2 = GetClientFromStage(p2, clientSz);
+					p3 = GetClientFromStage(p3, clientSz);
+					p4 = GetClientFromStage(p4, clientSz);
+					p->AddQuad(p1, p2, p3, p4, COL_HITBOX_ENM_HIT);
+				}else
+				{
+					vector2f posS = GetClientFromStage(pos, clientSz);
+					p->AddCircle(posS, GetClientFromStage(att.x*0.5f, clientSz), COL_HITBOX_ENM_ATT,10);
+					p->AddCircle(posS, GetClientFromStage(hit.x*0.5f, clientSz), COL_HITBOX_ENM_HIT,10);
+				}
+				
 
-				vector2f p1 = { pos.x - att.x * 0.5f,pos.y - att.y * 0.5f };
-				vector2f p2 = { pos.x + att.x * 0.5f,pos.y + att.y * 0.5f };
-				p1 = GetClientFromStage(p1, clientSz);
-				p2 = GetClientFromStage(p2, clientSz);
-				p->AddRect(p1,p2,COL_HITBOX_ENM_ATT);
-				p1 = { pos.x - hit.x * 0.5f,pos.y - hit.y * 0.5f };
-				p2 = { pos.x + hit.x * 0.5f,pos.y + hit.y * 0.5f };
-				p1 = GetClientFromStage(p1, clientSz);
-				p2 = GetClientFromStage(p2, clientSz);
-				p->AddRect(p1, p2, COL_HITBOX_ENM_HIT);
+				int tot_hp = VALUED(pEnm + 0x6224);
+				int hp = VALUED(pEnm + 0x6220);
+				vector2f ptxt = { pos.x,pos.y - att.y * 0.9f };
+				ptxt = GetClientFromStage(ptxt, clientSz);
+				char hpt[20];
+				sprintf_s(hpt, 20, "%4d/%4d", hp, tot_hp);
+				ImFont font(*ImGui::GetFont());
+				p->AddText(&font,25,ptxt, COL_HP, hpt,NULL,0.0f);
 			}
 			iter = VALUED(iter + 0x4);
 		}
@@ -234,6 +319,28 @@ int DrawBulletHitBox(vector2f clientSz)
 	return sum;
 }
 
+void DrawDrop(vector2f clientSz)
+{
+	auto dl = ImGui::GetOverlayDrawList();
+	int sum = 0;
+	DWORD pdrop = VALUED(0x004CF2EC);
+	if (pdrop)
+	{
+		pdrop += 0x14;
+		for (int i = 0; i < 4696; i++)
+		{
+			if (VALUED(pdrop + 0xC74))
+			{
+				vector2f vec{ VALUEF(pdrop + 0xC2C),VALUEF(pdrop + 0xC30) };
+				vec = GetClientFromStage(vec, clientSz);
+				dl->AddCircle(vec, 20.0f, COL_DROP, 6, 3.0f);
+			}
+			pdrop += 0xC94;
+		}
+	}
+	return;
+}
+
 void SetGUI(IDirect3DDevice9* device)
 {
 	//ImGui::ShowDemoWindow();
@@ -243,6 +350,46 @@ void SetGUI(IDirect3DDevice9* device)
 	vector2f smouse;
 	smouse = GetStageFromClient(vector2f{(float)mousePos.x,(float)mousePos.y }, clientSz);
 	ImGui::Begin("test");
+	
+	
+	//invincible
+	static bool is_invincible = false;
+	if (ImGui::Checkbox("is_invincible", &is_invincible))
+	{
+		if (is_invincible)
+		{
+			DWORD op;
+			VirtualProtect((LPVOID)0x45D4E4, 10, PAGE_READWRITE, &op);
+			for (int i = 0; i < 10; i++)
+				VALUEV(0x45D4E4 + i, BYTE) = 0x90;
+			VirtualProtect((LPVOID)0x45D4E4, 10, op, &op);
+		}else{
+			DWORD op;
+			VirtualProtect((LPVOID)0x45D4E4, 10, PAGE_READWRITE, &op);
+			BYTE normal[10] = { 0xC7, 0x87, 0xAC, 0x76, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00 };
+			for (int i = 0; i < 10; i++)
+				VALUEV(0x45D4E4 + i, BYTE) = normal[i];
+			VirtualProtect((LPVOID)0x45D4E4, 10, op, &op);
+		}
+	}
+	//end
+
+	if(ImGui::Button("open shop"))
+	{
+		VALUED(0x004CCCC8) = 0;//make practice mode also have shop
+		VALUED(VALUED(0x004CF2E4) + 0xB0) |= 0x20000;
+	}
+	if (ImGui::Button("open shop2"))
+	{
+		VALUED(0x004CCCC8) = 0;//make practice mode also have shop
+		M_OpenShop();
+	}
+	
+	if (ImGui::Button("close shop"))
+	{
+		VALUED(VALUED(0x004CF2A4) + 0xE38) = 5;
+	}
+	
 	static char subName[100] = { 0 };
 	if(subName[0]=='\0')
 		wsprintfA(subName, "Lily");
@@ -253,9 +400,9 @@ void SetGUI(IDirect3DDevice9* device)
 	ImGui::InputInt("life", &life, 1);
 	static int drop = 4;
 	ImGui::InputInt("drop", &drop, 1);
-	static int i1[4] = { 1,2,3,4 };
+	static int i1[4] = { 0,0,0,0 };
 	ImGui::InputInt4("iiii", i1);
-	static float f1[4] = { 1,2,3,4 };
+	static float f1[4] = { -1.57079f,1.0f,0.0f,0.0f};
 	ImGui::InputFloat4("ffff", f1);
 
 	static int SE = 1;
@@ -279,28 +426,37 @@ void SetGUI(IDirect3DDevice9* device)
 	if (ImGui::Button("update shoot"))
 		update_shot(PPLAYER+0x620, 0);
 
+	static bool keyDown_drop = false;
+	ImGui::Checkbox("keyDown_drop", &keyDown_drop);
+	if (keyDown_drop && (ImGui::GetMouseDragDelta().x!=0 || ImGui::IsMouseClicked(ImGuiMouseButton_Left)) && fabsf(smouse.x) < 192.0)
+	{
+		ImGui::ResetMouseDragDelta();
+		vector3f mpos{ smouse.x,smouse.y,0 };
+		dropItem(VALUED(0x004CF2EC), drop, &mpos, i1[0], f1[0], f1[1], i1[1], i1[2], i1[3]);
+	}
 	static bool keyDown_spawn = true;
 	ImGui::Checkbox("keyDown_spawn", &keyDown_spawn);
-	if (keyDown_spawn && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && fabsf(smouse.x)<180.0)
+	if (keyDown_spawn && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && fabsf(smouse.x)<192.0)
 	{
-		void (_fastcall *summon)(int thiz,int edx,char* name,EnemyInfo_init* info,int a)=nullptr;
-		*(DWORD*)(&summon) = (0x0042D7D0);
 		EnemyInfo_init info = { 0 };
 		info.drop = (Drop)drop;
 		info.hp = life;
 		info.pos.x = smouse.x;
 		info.pos.y = smouse.y;
 		if(*(DWORD*)(0x004CF2D0))
-			summon(*(DWORD*)(0x004CF2D0), 0, subName, &info, 0);
+			SummonEnm(*(DWORD*)(0x004CF2D0), 0, subName, &info, 0);
 	}
+	
 	static bool isDrawAttackHitBox = true;
 	static bool isDrawAnmObj = false;
 	static bool isDrawBulletHitBox = true;
 	static bool isDrawEnemy = true;
+	static bool isDrawDrop = true;
 	ImGui::Checkbox("drawAttackHitBox", &isDrawAttackHitBox);
 	ImGui::Checkbox("drawAnmObj", &isDrawAnmObj);
 	ImGui::Checkbox("drawBulletHitBox", &isDrawBulletHitBox);
 	ImGui::Checkbox("drawEnemy", &isDrawEnemy);
+	ImGui::Checkbox("drawDrop", &isDrawDrop);
 	int bt = 0;
 	if(isDrawAttackHitBox)
 		DrawAttackHitBox(clientSz);
@@ -314,6 +470,10 @@ void SetGUI(IDirect3DDevice9* device)
 	if (isDrawEnemy)
 	{
 		DrawEnemyHitbox(clientSz);
+	}
+	if (isDrawDrop)
+	{
+		DrawDrop(clientSz);
 	}
 
 
@@ -331,17 +491,20 @@ void SetGUI(IDirect3DDevice9* device)
 			time % 15, time, tstsht[1]);
 	}*/
 	//setPower
-	static int power = 300;
-	ImGui::DragInt("power", &power, 2.0f, 0, 400);
-	if (ImGui::Button("setPower"))
 	{
-		VALUED(0x004CCD38) = power;
-		update_shot(PPLAYER + 0x620, 0);
+		static int power = 300;
+		ImGui::DragInt("power", &power, 2.0f, 0, 400);
+		if (ImGui::Button("setPower"))
+		{
+			VALUED(0x004CCD38) = power;
+			update_shot(PPLAYER + 0x620, 0);
+		}
 	}
+	
 	//texture test
-	/*{
+	{
 		static int id_tex[2] = { 9,0 };
-		IDirect3DBaseTexture9* tex;
+		IDirect3DBaseTexture9* tex = nullptr;
 		static bool is_draw = false;
 		ImGui::Checkbox("shit", &is_draw);
 		ImGui::InputInt2("id_tex", id_tex);
@@ -364,7 +527,6 @@ void SetGUI(IDirect3DDevice9* device)
 			}
 		}
 	}
-	*/
 	
 	//3D test
 	{
@@ -440,6 +602,82 @@ void SetGUI(IDirect3DDevice9* device)
 				pos->x -= speed_move * lookAt->x, pos->y -= speed_move * lookAt->y;
 		}
 	}
+	//print src test
+	if (ImGui::Button("prtsc"))
+	{
+		
+		//device->CreateOffscreenPlainSurface
+		if (FAILED(D3DXSaveSurfaceToFile(L"E:\\touhou\\TH18-HLD\\src.png", _D3DXIMAGE_FILEFORMAT::D3DXIFF_PNG,
+			(LPDIRECT3DSURFACE9)(VALUED(0x004CCFA0)), NULL, NULL)))
+		{
+			int i = 0;
+		}
+	}
+	//stage texture test
+	{
+		static bool is_render_stage = false;
+		ImGui::Checkbox("render stage", &is_render_stage);
+		if (is_render_stage)
+		{
+			if (VALUED(0x04CCF9C))
+			{
+				IDirect3DCubeTexture9* cb = 0;
+				//[[[004CCDF0 + 0x82C]+ 0x124] + 0x48]
+				*(DWORD*)&cb = VALUED(VALUED(VALUED(0x004CCDF0 + 0x82C) + 0x124) + 0x30);
+				int x = 200, y = 100;
+				Custom_vertex1 v[5] =
+				{
+					{{x,y + 0,0},1,0xFFFFFFFF,{0,0}},
+					{{x + 384,y + 0,0},1,0xFFFFFFFF,{1,0}},
+					{{x + 0,y + 448,0},1,0xFFFFFFFF,{0,1}},
+					{{x + 384,y + 448,0},1,0xFFFFFFFF,{1,1}}
+				};
+				device->SetTexture(0, cb);
+				device->SetFVF(FVF_VERTEX_1);
+				device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(Custom_vertex1));
+			}
+		}
+	}
 	
+	//texture test2
+	{
+		DWORD iter = VALUED(0x51F65C)+0x2C;
+		static int id_tex[2] = { 9,0 };
+		IDirect3DCubeTexture9* tex = nullptr;
+		static bool is_draw2 = false;
+		ImGui::Checkbox("texture2", &is_draw2);
+		ImGui::InputInt2("id_tex2", id_tex);
+		if (is_draw2)
+		{
+			int x = 0, y = 0, n = 0,m=0;
+			while (VALUED(iter -0xC)>=1)
+			{
+				m++;
+				if (m >= 999)
+					break;
+				int id_anmFile = VALUED(iter - 0xC);
+				int id2 = VALUED(iter - 8);
+				if (VALUED(VALUED(0x0051F65C) + 4 * id_anmFile + 0x312072C))
+				{
+					*(DWORD*)(&tex) = VALUED(VALUED(VALUED(VALUED(0x0051F65C) + 4 * id_anmFile + 0x312072C) + 0x124)
+						+ 0x18 * id2);
+					device->SetTexture(0, tex);
+					Custom_vertex1 v[5] =
+					{
+						{{x + 0,y + 0,0},1,0xFFFFFFFF,{0,0}},
+						{{x + 20,y + 0,0},1,0xFFFFFFFF,{1,0}},
+						{{x + 0,y + 20,0},1,0xFFFFFFFF,{0,1}},
+						{{x + 20,y + 20,0},1,0xFFFFFFFF,{1,1}}
+					};
+					device->SetFVF(FVF_VERTEX_1);
+					device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(Custom_vertex1));
+					x += 25; n++;
+					if (n % 10 == 9)
+						y += 25;
+				}
+				iter += 0x28;
+			}
+		}
+	}
 	ImGui::End();
 }
