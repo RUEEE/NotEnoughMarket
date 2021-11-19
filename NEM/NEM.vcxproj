@@ -190,6 +190,7 @@
     <ClInclude Include="M_Background.h" />
     <ClInclude Include="M_Bomb.h" />
     <ClInclude Include="M_DropItem.h" />
+    <ClInclude Include="M_ECL.h" />
     <ClInclude Include="M_Misc.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="StructGenerator.h" />
@@ -234,6 +235,7 @@
     <ClCompile Include="M_Background.cpp" />
     <ClCompile Include="M_Bomb.cpp" />
     <ClCompile Include="M_DropItem.cpp" />
+    <ClCompile Include="M_ECL.cpp" />
     <ClCompile Include="M_Misc.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -243,6 +245,9 @@
     </ClCompile>
     <ClCompile Include="THFunction.cpp" />
     <ClCompile Include="ThStructure.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\InsDescription.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

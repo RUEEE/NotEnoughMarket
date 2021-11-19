@@ -38,10 +38,10 @@ int __fastcall DrawANM_Switch_Case28(DWORD thiz,AnmObj* pAnmObj)
 
 	UINT num = *pAnmObj->anm_globalVar_10000_10003(0);
 	void* vertice_arr=*pAnmObj->p_verticeArr();
-	if (*pAnmObj->anm_globalVar_10000_10003(1) == 999999)
-	{
-		pdevice->Clear(0, 0, D3DCLEAR_TARGET, 0x00000000, 0, 0);//!!!
-	}
+	//if (*pAnmObj->anm_globalVar_10000_10003(1) == 999999)
+	//{
+	//	pdevice->Clear(0, 0, D3DCLEAR_TARGET, 0x00000000, 0, 0);//!!!
+	//}
 	pdevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, num, vertice_arr, 0x1C);
 	return 0;
 }
@@ -92,8 +92,6 @@ void Inject_DrawANM_Switch()
 	Address<DWORD>(0x00481297).SetValue((DWORD)jmpTable2);
 	//use type 28 to draw CustomVertex1 with triangle list, num of point=[10000]*3
 	//if [10001]==999999,the bg will be clear
-
-
 }
 
 void InjectANM()

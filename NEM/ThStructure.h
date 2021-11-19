@@ -56,7 +56,7 @@ struct TimeObj
 	int time_now;
 	float time_now_f;
 	int flag;
-	void IncTime()
+	void inline IncTime()
 	{
 		float gms = GAME_SPD;
 		time_last = time_now;
@@ -71,7 +71,7 @@ struct TimeObj
 			time_now++;
 		}
 	}
-	void DecTime()
+	void inline DecTime()
 	{
 		float gms = GAME_SPD;
 		time_last = time_now;
@@ -87,6 +87,34 @@ struct TimeObj
 		}
 	}
 };
+
+struct ECL_Ins
+{
+	INT32 time;//+0
+	SHORT code;//+4
+	SHORT size;//+6
+	SHORT stack_flag;//+8
+	BYTE diff;//+A
+	BYTE arg_count;//+B
+	INT32 stack_count;//+C
+	DWORD args[64];//args
+};
+
+struct ECL_ThreadObj//0x1208
+{
+	float time_remain;//+0
+	DWORD curSub_num;//+4
+	DWORD curIP;//+8
+	DWORD stack[1024];//+C
+	DWORD curSP;//+100C
+	DWORD curBP;//+1010
+	DWORD id_thread;//+1014
+	DWORD ptObj;//+1018
+	DWORD unknown;//+101C
+	DWORD diff;//+1020
+	DWORD unknown2[121];//+1024
+};
+
 
 struct EnemyInfo_init
 {

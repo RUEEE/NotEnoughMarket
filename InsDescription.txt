@@ -1,0 +1,36 @@
+2000 DropCard(int t)
+	drop item whose type=t, with -56 to 0 means item card -56 to 0
+
+2500 PlayerSetPower(int p)
+	set player power to p in [0,400]
+2501 PlayerSetPos(float x,float y)
+	set player pos to (x,y)
+
+
+3000 AnmAllocVerticeBuffer(int s,int n,int t)
+	allocate anmVertice for anm in solt s with primitive count n,type t,type can be:
+	0:rect strip(every 1 point with the previous 2 points made a triangle, vertice num = n*2+2),anm varible[10000] in anm will be set to n+1
+	1:triangle list(every 3 point made a triangle, vertice num = n*3),anm varible[10000] in anm will be set to n
+	the anm varible [10001] will be set to vertice num
+	the vertex is a struct like: {float4 xyz_rhw;DWORD spec;float2 uv;}
+	anm which already have a vertice buffer (anm ins 600+) will not be allocated
+	all vertice will be set to (0,0,0,1;0xFFFFFF;0,0)
+3001 AnmSetVertice(int s,int n,float x,float y,int color,float u,float v)
+	set the vertice in buffer for anm in slot s
+	the x,y is relative to stage,u and v is in [0,1]
+3002 AnmInitVerticeRectStrip_Enm(int s)
+	(only work for rect strip)
+	made all vertice pos=enm.pos
+3003 AnmSetVerticeRectStrip_EnmMove(int s,float width,float currentMoveDir)
+	(only work for rect strip)
+	curve the anm just like curved laser,it should be called every frame
+	the anm varible [10005.0f] will be the length
+	if currentMoveDir==-999999.0f, [-9958.0f] will be used
+	should wait 1 frame after the movement of enm begin
+3004 AnmInitVertice_TriList_Enm(int s,int nx,int ny,float w,float h)
+	(only work for triangle list)
+	set the anm object to a rectangle w*h,which devided into nx*ny*2 triangles (use ins3000 with n=nx*ny*2)
+3005 AnmExplodeVertice_TriList_Enm(int s,int rnd_seed,float omega,float rnd_omega,float speed,float rnd_speed)
+	(only work for triangle list)
+	make all triangles explode one step
+	it should be called every frame

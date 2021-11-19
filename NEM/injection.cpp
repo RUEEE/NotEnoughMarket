@@ -12,6 +12,7 @@
 #include "M_DropItem.h"
 #include "M_Misc.h"
 #include "M_ANM.h"
+#include "M_ECL.h"
 #include "Address.h"
 
 #include <memory>
@@ -383,6 +384,7 @@ void InjectAll()
     InjectDropItem();
     InjectPlayerPositionTest();
     InjectANM();
+    InjectECL();
 }
 
 

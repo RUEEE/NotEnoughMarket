@@ -35,6 +35,9 @@ unsigned int(__thiscall* GetRndInt)(DWORD thiz)= (unsigned int(__thiscall*)(DWOR
 extern int(__thiscall* DrawANM_inQueue)(DWORD thiz)= (int(__thiscall *)(DWORD thiz))0x47E730;
 extern int(__thiscall* Anm_SetRenderState)(int thiz, AnmObj* pAnmObj)= (int(__thiscall*)(int thiz, AnmObj * pAnmObj))0x47D910;
 
+int* (__thiscall* ECL_GetPtArgI_Th)(ECL_ThreadObj* thiz, UINT a2) = (int* (__thiscall*)(ECL_ThreadObj * thiz, UINT a2))0x48D750;
+float* (__thiscall* ECL_GetPtArgF_Th)(ECL_ThreadObj* thiz, UINT a2) = (float* (__thiscall*)(ECL_ThreadObj * thiz, UINT a2))0x48D7C0;
+int(__thiscall* ECL_GetArgI_Th)(ECL_ThreadObj* thiz, UINT a2) = (int(__thiscall*)(ECL_ThreadObj * thiz, UINT a2))0x48D4F0;
 
 
 void EraseBullet_round(float radius, vector3f* pos, int dropType, int max_bullet_count, int a5)
@@ -160,4 +163,20 @@ vector2f RotateVec(vector2f pt, vector2f angle)
 	float& cost = angle.x;
 	float& sint = angle.y;
 	return { pt.x * cost - pt.y * sint,pt.y * cost + pt.x * sint };
+}
+
+bool IsCardEquipped(UINT id)
+{
+	DWORD cardIt = VALUED(VALUED(0x4CF298) + 0x1C);
+	if (cardIt)
+	{
+		while (VALUED(VALUED(cardIt) + 4) != id)
+		{
+			cardIt = VALUED(cardIt + 4);
+			if (!cardIt)
+				return false;
+		}
+		return true;
+	}
+	return false;
 }

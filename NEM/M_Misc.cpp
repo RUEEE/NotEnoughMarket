@@ -180,21 +180,7 @@ CardInShopInfo* GetpCardInfoFromId(int id)
     return (CardInShopInfo*)(VALUED(0x4C5F20));
 }
 
-bool IsCardEquipped(int id)
-{
-    DWORD cardIt = VALUED(VALUED(0x4CF298)+ 0x1C);
-    if (cardIt)
-    {
-        while (VALUED(VALUED(cardIt)+ 4) != id)
-        {
-            cardIt = VALUED(cardIt+4);
-            if (!cardIt)
-                return false;
-        }
-        return true;
-    }
-    return false;
-}
+
 
 void M_OpenSuperShop()
 {
@@ -383,6 +369,7 @@ vector2f GetUVStageBackGround(vector2f iuv)
 
 void __fastcall M_OnPlayerPositionSet(int ecx_vx, int edx_vy)
 {
+    return;
     AnmObj* pStageAnm = STAGE_FINAL_ANMOBJ;
     Custom_vertex1* vertices = nullptr;
     const UINT num_vertex = 7*8*6;

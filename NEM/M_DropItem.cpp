@@ -97,7 +97,11 @@ void __stdcall M_ItemSwitchDefault(int type)
 {
 	if (type <= 0)//ability card drops
 	{
-		AddCard(VALUED(0x004CF298), -type, 2);
+		if (!IsCardEquipped(-type))
+		{
+			AddCard(VALUED(0x004CF298), -type, 2); 
+			UpdateShot_F();
+		}
 	}
 	else
 	{
