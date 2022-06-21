@@ -313,20 +313,22 @@ BOOL WINAPI MyTextOutA(HDC hdc, int nXStart, int nYStart, LPCSTR lpString, int c
 {
     RECT rc{};
     
-    //auto hFont = CreateFontA(15, 15, 0, 0, FW_THIN, true, false, false,
+   //auto hFont = CreateFontA(15, 15, 0, 0, FW_THIN, true, false, false,
    //     CHINESEBIG5_CHARSET, OUT_CHARACTER_PRECIS,
    //     CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY,
    //     FF_MODERN, "ËÎÌו");
    
-    //SelectObject(hdc, hFont);
-   // DeleteObject(hFont);
+   //SelectObject(hdc, hFont);
+   
     rc.left = nXStart; rc.top = nYStart;
     rc.right = nXStart + 1000;
     rc.bottom = rc.top + 1000;
 
-    auto hBrush = CreateSolidBrush(RGB(255, 255, 0));
+    //auto hBrush = CreateSolidBrush(RGB(255, 255, 0));
     //FillRect(hdc, &rc, hBrush);
-    return DrawTextA(hdc, lpString, cbString, &rc, DT_LEFT | DT_TOP);
+    auto ret=DrawTextA(hdc, lpString, cbString, &rc, DT_LEFT | DT_TOP);
+    //DeleteObject(hFont);
+    return ret;
 }
 
 HANDLE(*WINAPI RealCreateMutexA)(LPSECURITY_ATTRIBUTES se, BOOL initialOwner, LPCSTR name);

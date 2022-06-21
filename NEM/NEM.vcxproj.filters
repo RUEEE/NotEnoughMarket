@@ -87,6 +87,9 @@
     <ClInclude Include="M_ECL.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DXS_MeshLoader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -150,6 +153,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="M_ECL.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DXS_MeshLoader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

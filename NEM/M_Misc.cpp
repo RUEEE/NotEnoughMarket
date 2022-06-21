@@ -369,7 +369,7 @@ vector2f GetUVStageBackGround(vector2f iuv)
 
 void __fastcall M_OnPlayerPositionSet(int ecx_vx, int edx_vy)
 {
-    return;
+   // return;
     AnmObj* pStageAnm = STAGE_FINAL_ANMOBJ;
     Custom_vertex1* vertices = nullptr;
     const UINT num_vertex = 7*8*6;
@@ -463,7 +463,84 @@ void __fastcall M_OnPlayerPositionSet(int ecx_vx, int edx_vy)
     }
 }
 
+
+void __fastcall M_OnPlayerPositionSet__hideBullets(int ecx_vx, int edx_vy)
+{
+    auto dl = ImGui::GetOverlayDrawList();
+    int sum = 0;
+    DWORD pbtx = VALUED(0x004CF2BC);
+    if (pbtx)
+    {
+        DWORD iter = VALUED(pbtx + 0xC0);
+        while (iter)
+        {
+            sum++;
+            //DWORD pbt = VALUED(iter);
+            float threat = 0.0f;
+            Bullet* pbt = VALUEV(iter,Bullet*);
+            Player* ppl = PPLAYER2;
+            vector2f xBt = *(vector2f*)pbt->position();
+            vector2f xPl = *(vector2f*)ppl->fPosition();
+            vector2f vPl = { ecx_vx / 128.0f,edx_vy / 128.0f };
+           
+            vector2f vBt = *(vector2f*)pbt->velocity();
+            //xB+vB*t=xP+vP*(cos a + isin a)*t
+            //xP-xB=(vB-vP*(cos a + isin a))t
+            float spdPl = 0.0f;
+            float hiSpd = *ppl->iVelocity_fixed_hiSpd() / 128.0f;
+            float loSpd= *ppl->iVelocity_fixed_loSpd() / 128.0f;
+            if (hypotf(vPl.x, vPl.y) <hiSpd - 0.1f)
+            {
+                spdPl = loSpd*1.5f;
+            }else{
+                spdPl = hiSpd;
+            }
+            vector2f delX = { xPl.x - xBt.x,xPl.y - xBt.y };
+            float lenDelX = max(0.01f,hypotf(delX.x, delX.y));
+            float lenVBt=hypotf(vBt.x,vBt.y);
+
+            float proj = (delX.x * vBt.x + delX.y * vBt.y) / lenDelX;
+            float vert=sqrtf(max(0.0f,lenVBt* lenVBt-proj*proj));
+            float proj2s = spdPl * spdPl - vert * vert;
+            float proj2s_hiSpd = hiSpd * hiSpd - vert * vert;
+            if (proj2s_hiSpd < 0)
+                goto COLOR_BULLET;
+            if (proj2s < 0)
+            {
+                threat = 0.1f;
+                goto COLOR_BULLET;
+            }
+            float proj2 = sqrtf(proj2s);
+            float t1 = lenDelX/(proj - proj2);
+            float t2 = lenDelX / (proj + proj2);
+            if (t2 > 90)
+                goto COLOR_BULLET;
+            threat = 1.0f;
+            float c = (vBt.x*delX.x+vBt.y*delX.y)/(lenVBt*lenDelX);
+            c = max(c, 0);
+
+            if (c >= 0.7f)
+                threat = 1.0f;
+            else
+                threat = (c+2.0f)*(c+2.0f)/9.0f;
+
+            if (c >= 0.8f)
+                goto COLOR_BULLET;
+
+            float th2 = 1.0f;
+            if(lenDelX>100.0f)
+                th2 = expf(-powf(lenDelX / 200.0f,5.0f));//e^(-((x/200)^5.0))
+            threat *= th2;
+COLOR_BULLET:
+            *(pbt->pAnm()->color1())&=0x00FFFFFF;
+            *(pbt->pAnm()->color1()) |= ((BYTE)(threat * 255))<<24;
+            iter = VALUED(iter + 0x4);
+        }
+    }
+}
+
 void InjectPlayerPositionTest()
 {
-    Hook((LPVOID)0x0045B6FF, 6, (LPVOID)M_OnPlayerPositionSet);
+    //Hook((LPVOID)0x0045B6FF, 6, (LPVOID)M_OnPlayerPositionSet__autoAimMod);
+    //Hook((LPVOID)0x0045B6FF, 6, (LPVOID)M_OnPlayerPositionSet__hideBullets);
 }

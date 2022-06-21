@@ -2,6 +2,7 @@
 #pragma warning(disable:4244)//float<->int
 #pragma warning(disable:4305)//float<->double
 #include <Windows.h>
+#include <functional>
 #include "ThStructure.h"
 #include "THFunction.h"
 extern LPVOID(__cdecl* AllocMemory)(DWORD sz);
@@ -81,8 +82,15 @@ inline AnmObj* GetAnmObjFromHandle_F(HANM hanm)
 inline int DropItem_F(Drop type, vector3f* pos, int a4, float dir, float spd, int delay, int a8, int a9)
 		{return DropItem(VALUED(0x004CF2EC), type, pos,a4,dir, spd,delay,a8,a9);}
 inline void UpdateShot_F() { UpdateShot(PPLAYER + 0x620, 0); }
+inline void AddBomb_F(){AddBomb(0x4CCCDC, 0); }
+inline void AddLifePeice_F(){AddLifePeice(0x4CCCDC, 0); }
+inline void AddLife_F(){AddLife(0x4CCCDC); }
+
 
 //quick call
+constexpr float ToRad(float f) { return f / 180.0f * PI; }
+constexpr float ToDeg(float f) { return f * 180.0f / PI; }
+
 void inline SetInvincibleTime(int time)
 		{VALUED(PPLAYER + 0x47774) = time - 1;VALUED(PPLAYER + 0x47778) = time;VALUEF(PPLAYER + 0x4777C) = (float)(time);}
 UINT32 inline GetRndInt_Rep()
@@ -112,3 +120,63 @@ Enemy* GetEnm_inCircle_attackable(float radius, int* out_id, vector2f* pos);
 
 //fix bug
 void SetAllPlayerOpOnTickFunc();
+
+
+//iterators
+typedef DWORD EnemyIter;
+
+inline EnemyIter EnemyIterBegin() {
+	DWORD enmBase = *(DWORD*)(0x004CF2D0);
+	if (enmBase)
+	{
+		DWORD iter = VALUED(enmBase + 0x18C);
+		return iter;
+	}
+	return 0;
+};
+inline EnemyIter EnemyIterNext(EnemyIter& it)
+{
+	if (it == 0)
+		return 0;
+	return it=VALUED((DWORD)it + 0x4);
+}
+inline Enemy* EnemyIterDeRef(EnemyIter it) { 
+	if (it == 0)
+		return nullptr;
+	return VALUEV(it, Enemy*); 
+}
+
+//ForAll
+inline void For_AllBullets(std::function<void (Bullet*,int)> func)//the pointer of bullet and the index for bullet
+{
+	int i = 0;
+	DWORD pbtx = VALUED(0x004CF2BC);
+	if (pbtx)
+	{
+		DWORD iter = VALUED(pbtx + 0xC0);
+		while (iter)
+		{
+			Bullet* pbt = VALUEV(iter,Bullet*);
+			func(pbt, i);
+			i++;
+			iter = VALUED(iter + 0x4);
+		}
+	}
+}
+
+inline void For_AllEnemies(std::function<void(Enemy*, int)> func)
+{
+	DWORD enmBase = *(DWORD*)(0x004CF2D0);
+	if (enmBase)
+	{
+		int i = 0;
+		DWORD iter = VALUED(enmBase + 0x18C);
+		while (iter)
+		{
+			Enemy* pEnm = VALUEV(iter,Enemy*);
+			func(pEnm,i);
+			i++;
+			iter = VALUED(iter + 0x4);
+		}
+	}
+}

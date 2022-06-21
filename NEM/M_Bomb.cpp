@@ -3,10 +3,17 @@
 #include "Address.h"
 #include "THFunction.h"
 #include <set>
+#include <array>
 
-
+UINT M_marisaBomb_type=0;
+//hi-speed bomb
 std::set<int> M_marisaBomb_enm_set;
-std::set<std::pair<DWORD,int>> M_marisaBomb_hanm_set;
+std::set<std::pair<DWORD,HANM>> M_marisaBomb_hanm_set;
+//lo-speed bomb
+std::array<HANM,128> M_mariaBomb_hanm_arr;
+std::array<DWORD,128> M_mariaBomb_hasAimed;
+std::array<vector2f, 128> M_marisaBomb_velocity;
+
 int __fastcall M_MarisaBombRelease(DWORD thiz)
 {
 	/*VALUEV(thiz+0x14,vector3f)=VALUEV(PPLAYER+0x620, vector3f);
@@ -22,7 +29,9 @@ int __fastcall M_MarisaBombRelease(DWORD thiz)
 	SetInvincibleTime(120);
 	return 0;*/
 
-	SetInvincibleTime(240);
+	AddBomb_F();
+	M_marisaBomb_type = *(PPLAYER2->isFocused());
+	SetInvincibleTime(300);
 	M_marisaBomb_enm_set.clear();
 	M_marisaBomb_hanm_set.clear();
 
@@ -35,12 +44,28 @@ int __fastcall M_MarisaBombRelease(DWORD thiz)
 	InsertAnmObj(&hAnm, pAnmObj);
 	AnmInsSwitch(pAnmObj);
 	VALUED(thiz + 0x64) = hAnm;
-	VALUEV(pAnmObj + 0x5F0, vector3f) = VALUEV(thiz + 0x14, vector3f);
+	//VALUEV(pAnmObj + 0x5F0, vector3f);
+	*pAnmObj->pos() = VALUEV(thiz + 0x14, vector3f);
+	std::fill(M_mariaBomb_hanm_arr.begin(), M_mariaBomb_hanm_arr.end(), 0);
+	if(M_marisaBomb_type==0)
+		return 0;
 	return 0;
 }
 
 int __fastcall M_MarisaBombFunc(DWORD thiz)
 {
+	auto ppl = PPLAYER2;
+	const UINT32 maxDamage_hiSpd = 400;
+	const UINT32 maxDamage_loSpd = 230;
+	const UINT32 c_id_MarisaAim = 47;
+	const UINT32 c_id_MarisaMissile = 56;
+	const UINT32 c_id_MarisaMissileBoom = 51;
+	const UINT32 c_id_MarisaMissileBoom2 = 57;
+	const UINT32 c_id_MarisaMissileDelayExplosion = 80;
+	const UINT32 c_id_MarisaMissileDelayExplosion2 = 200;
+	const float c_MarisaMissileDelay = 60.0f;
+	const UINT num_missile = 10;
+	const UINT d_time = 7;
 	{
 		//float up_time = 480.0f;
 		//float resize_time = 60.0f;
@@ -75,79 +100,261 @@ int __fastcall M_MarisaBombFunc(DWORD thiz)
 	}
 	DWORD enmBase = *(DWORD*)(0x004CF2D0);
 	TimeObj* time = (TimeObj*)(thiz + 0x34);
-	if (time->time_last != time->time_now && time->time_now < 90)
+	if (M_marisaBomb_type == 0)//hiSpeed_bomb
 	{
-		float time_remain = 90.0f, max_radius = 600.0f;
-		float r_now = time->time_now_f * (max_radius / time_remain);
-		EraseBullet_round(r_now, (vector3f*)(thiz + 0x14), 0, 99999, 0);
-		if (enmBase)
+		*ppl->maxDamagePerFrame() = maxDamage_hiSpd;
+		if (time->time_last != time->time_now && time->time_now < 90)
 		{
-			DWORD iter = VALUED(enmBase + 0x18C);
-			while (iter)
+			float time_remain = 90.0f, max_radius = 600.0f;
+			float r_now = time->time_now_f * (max_radius / time_remain);
+			EraseBullet_round(r_now, (vector3f*)(thiz + 0x14), 0, 99999, 0);
+			EraseLaser_round(100.0f, (vector3f*)(thiz + 0x14), 0, false);
+			if (enmBase)
 			{
-				DWORD pEnm = VALUED(iter);
+				DWORD iter = VALUED(enmBase + 0x18C);
+				while (iter)
 				{
-					DWORD flag = VALUED(pEnm + 0x635C);
-					if ((flag & 0x0000021) == 0)//available
+					DWORD pEnm = VALUED(iter);
 					{
-						vector3f posE=VALUEV(pEnm + 0x1270, vector3f);
-						vector3f posH = VALUEV(thiz + 0x14, vector3f);
-						float dist = (posE.x - posH.x)* (posE.x - posH.x);
-						dist+= (posE.y- posH.y) * (posE.y - posH.y);
-						if (dist<r_now*r_now)
+						DWORD flag = VALUED(pEnm + 0x635C);
+						if ((flag & 0x0000021) == 0)//available
 						{
-							int id = VALUED(pEnm + 0x6830);
-							if (!M_marisaBomb_enm_set.count(id))
+							vector3f posE = VALUEV(pEnm + 0x1270, vector3f);
+							vector3f posH = VALUEV(thiz + 0x14, vector3f);
+							float dist = (posE.x - posH.x) * (posE.x - posH.x);
+							dist += (posE.y - posH.y) * (posE.y - posH.y);
+							if (dist < r_now * r_now)
 							{
-								M_marisaBomb_enm_set.insert(id);
-								AnmObj* pAnmObj = AllocateAnmObj();
-								DWORD pAnmFile = VALUED(PPLAYER + 0xC);
-								++VALUED(pAnmFile + 0x4D);
-								AttachAnm(pAnmFile, pAnmObj, 47);
-								HANM hAnm;
-								InsertAnmObj(&hAnm, pAnmObj);
-								VALUEV(pAnmObj+0x5F0, vector3f)= VALUEV(pEnm + 0x1270, vector3f);
-								AnmInsSwitch(pAnmObj);
-								M_marisaBomb_hanm_set.insert(std::make_pair(id,hAnm));
+								int id = VALUED(pEnm + 0x6830);
+								if (!M_marisaBomb_enm_set.count(id))
+								{
+									M_marisaBomb_enm_set.insert(id);
+									AnmObj* pAnmObj = AllocateAnmObj();
+									DWORD pAnmFile = VALUED(PPLAYER + 0xC);
+									++VALUED(pAnmFile + 0x4D);
+									//AttachAnm(pAnmFile, pAnmObj, 47);
+									AttachAnm(pAnmFile, pAnmObj, c_id_MarisaAim);
+									HANM hAnm;
+									InsertAnmObj(&hAnm, pAnmObj);
+									VALUEV(pAnmObj + 0x5F0, vector3f) = VALUEV(pEnm + 0x1270, vector3f);
+									AnmInsSwitch(pAnmObj);
+									M_marisaBomb_hanm_set.insert(std::make_pair(id, hAnm));
+								}
 							}
 						}
 					}
+					iter = VALUED(iter + 0x4);
 				}
-				iter = VALUED(iter + 0x4);
 			}
 		}
-	}
-	for (auto& i : M_marisaBomb_hanm_set)
-	{
-		DWORD pAnm = (DWORD)GetAnmObjFromHandle(VALUED(0x51F65C), i.second);
-		if (pAnm)
-		{
-			int id = i.first;
-			DWORD pEnm=(DWORD)GetEnmObjFromId(&id);
-			if (pEnm)
-			{
-				VALUEV(pAnm + 0x5F0, vector3f) = VALUEV(pEnm + 0x1270, vector3f);
-			}
-		}
-	}
-	if (time->time_now == 120)
-	{
 		for (auto& i : M_marisaBomb_hanm_set)
 		{
 			DWORD pAnm = (DWORD)GetAnmObjFromHandle(VALUED(0x51F65C), i.second);
 			if (pAnm)
 			{
-				int n=SummonAttackCircle(PPLAYER2, 10.0f, 0.5f, (vector3f*)(pAnm + 0x5F0), 90, 500);
-				EraseBullet_round(100.0f, (vector3f*)(pAnm + 0x5F0), 0, 99999, 0);
-				VALUED(PPLAYER + 0x204D8 + n * 0x9C+0x98) = 3;//fire eff
+				int id = i.first;
+				DWORD pEnm = (DWORD)GetEnmObjFromId(&id);
+				if (pEnm)
+				{
+					VALUEV(pAnm + 0x5F0, vector3f) = VALUEV(pEnm + 0x1270, vector3f);
+				}
 			}
-			AnmReturn_byHANM(i.second);
 		}
-		AnmReturn_byHANM(VALUED(thiz + 0x64));
+		if (time->time_last != time->time_now && time->time_now == 120)
+		{
+			UINT n_boom = 0;
+			for (auto& i : M_marisaBomb_hanm_set)
+			{
+				n_boom++;
+				DWORD pAnm = (DWORD)GetAnmObjFromHandle(VALUED(0x51F65C), i.second);
+				if (pAnm)
+				{
+					AnmObj* pAnmObj = AllocateAnmObj();
+					DWORD pAnmFile = VALUED(PPLAYER + 0xC);
+					++VALUED(pAnmFile + 0x4D);
+					AttachAnm(pAnmFile, pAnmObj, c_id_MarisaMissileBoom2);
+					HANM hAnm;
+					InsertAnmObj(&hAnm, pAnmObj);
+					*pAnmObj->pos() = *(vector3f*)(pAnm + 0x5F0);
+					AnmInsSwitch(pAnmObj);
+
+					int n = SummonAttackCircle(PPLAYER2, 10.0f, 0.5f, (vector3f*)(pAnm + 0x5F0), 40, 800);
+					EraseBullet_round(100.0f, (vector3f*)(pAnm + 0x5F0), 0, 99999, 0);
+					EraseLaser_round(100.0f, (vector3f*)(pAnm + 0x5F0), 0, false);
+					VALUED(PPLAYER + 0x204D8 + n * 0x9C + 0x98) = 3;//fire eff
+				}
+				AnmReturn_byHANM(i.second);
+			}
+			if (n_boom)
+			{
+				ShakeStage(1, 20, 2, 2, 0, 0x5B);
+				PlaySEWithChannel(0.0f, 6);
+			}
+			AnmReturn_byHANM(VALUED(thiz + 0x64));
+		}
+		if (time->time_now >= 150)
+		{
+			return -1;
+		}
+		return 0;
 	}
-	if (time->time_now >= 150)
+	//loSpeed_bomb
+	*ppl->maxDamagePerFrame() = maxDamage_loSpd;
+	if (time->time_last != time->time_now && 
+		time->time_now >=2 && time->time_now<=(num_missile-1)* d_time +2 && 
+		(time->time_now - 2) % d_time == 0)
+	{
+		const float speed=5.0f;
+		UINT i = (time->time_now-2) / d_time;
+		constexpr float angleAcc = ToRad(-120.0f / (num_missile-1.0f));
+		{
+			float angle = ToRad(150) + i * angleAcc;
+			AnmObj* pAnmObj = AllocateAnmObj();
+			DWORD pAnmFile = VALUED(PPLAYER + 0xC);
+			++VALUED(pAnmFile + 0x4D);
+			//AttachAnm(pAnmFile, pAnmObj, 47);
+			AttachAnm(pAnmFile, pAnmObj, c_id_MarisaMissile);
+			HANM hAnm;
+			InsertAnmObj(&hAnm, pAnmObj);
+			*pAnmObj->pos() = *ppl->fPosition();
+			AnmInsSwitch(pAnmObj);
+			M_mariaBomb_hanm_arr[i] = hAnm;
+			M_marisaBomb_velocity[i] = { speed*cosf(angle),speed*sinf(angle) }; 
+			M_mariaBomb_hasAimed[i] = 0;
+		}
+	}
+	for (UINT i = 0; i < num_missile; i++)
+	{
+		auto& vel=M_marisaBomb_velocity[i];
+		if (M_mariaBomb_hanm_arr[i] == 0)
+			continue;
+		AnmObj* pObj = GetAnmObjFromHandle_F(M_mariaBomb_hanm_arr[i]);
+		if (!pObj)
+			continue;
+		//wait for some time
+		//float time_whenwait = 20.0f;
+		//float t =time->time_now-d_time*i;
+		//t = 0.5f * (t - time_whenwait);
+		//float v_ratio = 1.0f-2.0f/(expf(t)+expf(-t));
+		//
+		//vel.x *= v_ratio;
+		//vel.y *= v_ratio;
+		pObj->pos()->x+=vel.x;
+		pObj->pos()->y+=vel.y;
+
+
+
+		pObj->rotation()->z = atan2f(vel.y, vel.x);
+		EnemyIter it_enm = EnemyIterBegin();
+		Enemy* pEnm_nearest=nullptr;
+		float dist_min = 9999999;
+		for(EnemyIter it_enm=EnemyIterBegin();it_enm;EnemyIterNext(it_enm))
+		{
+			Enemy* enm = EnemyIterDeRef(it_enm);
+			if ((*enm->flag() & 0x0000021) == 0)//available
+			{
+				float dist = DIST_VEC2(*enm->positionFin(), *pObj->pos());
+				if (dist < dist_min)
+				{
+					dist_min = dist;
+					pEnm_nearest = enm;
+				}
+			}
+		}//find the nearest enm
+		if (pEnm_nearest == nullptr)
+		{
+			if (time->time_now < c_MarisaMissileDelay)
+			{
+				vel.x = 0.97 * vel.x;
+				vel.y = 0.97 * vel.y;
+			}
+			else
+			{
+				vel.x = 1.05 * vel.x;
+				vel.y = 1.05 * vel.y;
+			}
+			UINT32 delay = M_mariaBomb_hasAimed[i]?c_id_MarisaMissileDelayExplosion2: c_id_MarisaMissileDelayExplosion;
+			if ((time->time_now > delay &&
+				(pObj->pos()->x < -195.0f || pObj->pos()->x > 195.0f
+					|| pObj->pos()->y < -10.0f || pObj->pos()->y>450.0f)))
+			{
+				goto EXPLOSION;
+			}
+			continue;
+		}
+		M_mariaBomb_hasAimed[i] = 1;
+		float explosion_dist = 50.0f;
+		if (dist_min <= explosion_dist)
+		{
+EXPLOSION:
+			PlaySEWithChannel(pObj->pos()->x, 6);
+			ShakeStage(1, 20, 5, 5, 0, 0x5B);
+			AnmObj* pAnmObj = AllocateAnmObj();
+			DWORD pAnmFile = VALUED(PPLAYER + 0xC);
+			++VALUED(pAnmFile + 0x4D);
+			AttachAnm(pAnmFile, pAnmObj, c_id_MarisaMissileBoom);
+			HANM hAnm;
+			InsertAnmObj(&hAnm, pAnmObj);
+			*pAnmObj->pos() = *pObj->pos();
+			AnmInsSwitch(pAnmObj);
+			SummonAttackCircle(PPLAYER2, 40.0f, 1.0f, pAnmObj->pos(), 60, 800);
+			EraseBullet_round(200.0f, pAnmObj->pos(), 0, 99999, 0);
+			EraseLaser_round(200.0f, pAnmObj->pos(), 0, false);
+			AnmReturn_byHANM(M_mariaBomb_hanm_arr[i]);
+			M_mariaBomb_hanm_arr[i] = 0;
+		}else{
+			vector2f enm_pos = *pEnm_nearest->positionFin();
+			vector2f anm_pos = *(vector2f*)pObj->pos();
+			vector2f acc = { enm_pos.x - anm_pos.x,enm_pos.y - anm_pos.y };
+			float dist2 = dist_min * dist_min;
+			acc.x /= dist2;//F p r^(-1)
+			acc.y /= dist2;
+			acc.x = min(0.5f, acc.x);
+			acc.y = min(0.5f, acc.y);
+			float mass = 2.0f+max(0,(time->time_now-i*d_time-c_MarisaMissileDelay)*2.4f);
+			vel.x = 0.975 * vel.x + acc.x * mass;
+			vel.y = 0.975 * vel.y + acc.y * mass;
+		}
+	}
+	if (time->time_last != time->time_now && time->time_now == c_MarisaMissileDelay)
+	{
+		PlaySEWithChannel(ppl->fPosition()->x, 53);
+	}
+	if (time->time_last != time->time_now && time->time_now == 240)
+	{
+		AnmReturn_byHANM(VALUED(thiz + 0x64));
+		UINT n_missile = 0;
+		EraseBullet_round(600.0f, ppl->fPosition(), 0, 99999, 0);
+		EraseLaser_round(600.0f, ppl->fPosition(), 0, false);
+		for (UINT i = 0; i < num_missile; i++)
+		{
+			AnmObj* pObj = GetAnmObjFromHandle_F(M_mariaBomb_hanm_arr[i]);
+			if (!pObj)
+				continue;
+			n_missile++;
+			AnmObj* pAnmObj = AllocateAnmObj();
+			DWORD pAnmFile = VALUED(PPLAYER + 0xC);
+			++VALUED(pAnmFile + 0x4D);
+			AttachAnm(pAnmFile, pAnmObj, c_id_MarisaMissileBoom);
+			HANM hAnm;
+			InsertAnmObj(&hAnm, pAnmObj);
+			*pAnmObj->pos() = *pObj->pos();
+			AnmInsSwitch(pAnmObj);
+			SummonAttackCircle(PPLAYER2, 40.0f, 0.5f, pAnmObj->pos(), 15, 100);
+			AnmReturn_byHANM(M_mariaBomb_hanm_arr[i]);
+			M_mariaBomb_hanm_arr[i] = 0;
+		}
+		if (n_missile)
+		{
+			ShakeStage(1, 20, 10, 10, 0, 0x5B);
+			PlaySEWithChannel(0.0f, 51);
+		}
+	}
+
+	if (time->time_now >= 280)
 	{
 		return -1;
+		*ppl->maxDamagePerFrame() = 160;
 	}
 	return 0;
 }
@@ -156,6 +363,6 @@ int __fastcall M_MarisaBombFunc(DWORD thiz)
 
 void Inject_Bomb()
 {
-	//Address<DWORD>(0x4B6314).SetValue((DWORD)M_MarisaBombRelease);
-	//Address<DWORD>(0x4B6318).SetValue((DWORD)M_MarisaBombFunc);
+	Address<DWORD>(0x4B6314).SetValue((DWORD)M_MarisaBombRelease);
+	Address<DWORD>(0x4B6318).SetValue((DWORD)M_MarisaBombFunc);
 }

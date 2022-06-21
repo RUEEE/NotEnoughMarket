@@ -9,7 +9,7 @@
 #define VALUEF(x) (*(float*)(x))
 #define VALUEV(x,T) (*(T*)(x))
 
-#define DIST_VEC2(a,b) hypotf(a.x-b.x,a.y-b.y)
+#define DIST_VEC2(a,b) hypotf((a).x-(b).x,(a).y-(b).y)
 
 //the bullet defs
 #define PPLAYER VALUED(0x004CF410)
@@ -31,7 +31,7 @@ constexpr auto PI = 3.141592653589793;
 
 enum class Drop
 {
-	smallP = 1, gold, bigP, lifePeice, life, bombPeice, bomb, largeF, smallG, midG, largeG, bombPeice2
+	none=0,smallP = 1, gold, bigP, lifePeice, life, bombPeice, bomb, largeF, smallG, midG, largeG, bombPeice2
 };
 
 typedef ImVec2 vector2f;
@@ -377,24 +377,14 @@ ARRTYPESZ(0x580,PlayerOp,playerOpArr,0xF0)\
 ARRTYPESZ(0x1570,ShotAttObj,shotAttObjArr,0xF8)\
 ARRTYPESZ(0x20574,AttackObj,attObjArr,0x9C)\
 STYPE(0x476AC,UINT32,plState)\
+STYPE(0x476CC,BOOL,isFocused)\
 ARRTYPESZ(0x47800,vector2i,iPosition_prev,0x8)\
+STYPE(0x477B4,int,iVelocity_fixed_hiSpd)\
+STYPE(0x477B8,int,iVelocity_fixed_loSpd)\
 STYPE(0x477C4,vector2f,fVelocity_fixed)\
+STYPE(0x47984,INT32,maxDamagePerFrame)\
 STYPE(0x4799C,float,hitbox_highspeed)\
 STYPE(0x479A0,float,hitbox_focused)\
-
-#include "StructGenerator.h"
-
-
-#define STRUCT_NAME Bullet
-#define STRUCT_BODY \
-STYPE(0x28,DWORD,pAnm)\
-STYPE(0x638,vector3f,position)\
-STYPE(0x644,vector3f,velocity)\
-STYPE(0x658,vector2f,hitbox)\
-STYPE(0xF80,TimeObj,nowTime)\
-STYPE(0x654,float,anmAngle)\
-STYPE(0xF98,UINT16,type)\
-STYPE(0xF9A,UINT16,color)\
 
 #include "StructGenerator.h"
 
@@ -445,7 +435,18 @@ STYPE(0x4E4,vector3f,pos2)\
 
 #include "StructGenerator.h"
 
+#define STRUCT_NAME Bullet
+#define STRUCT_BODY \
+STYPE(0x28,AnmObj,pAnm)\
+STYPE(0x638,vector3f,position)\
+STYPE(0x644,vector3f,velocity)\
+STYPE(0x658,vector2f,hitbox)\
+STYPE(0xF80,TimeObj,nowTime)\
+STYPE(0x654,float,anmAngle)\
+STYPE(0xF98,UINT16,type)\
+STYPE(0xF9A,UINT16,color)\
 
+#include "StructGenerator.h"
 
 #define STRUCT_NAME StageMenu
 #define STRUCT_BODY \
